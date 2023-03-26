@@ -32,6 +32,8 @@ import java.util.*;
 public class VMeter extends LayerMeter {
     public static final Tex bg = Resource.loadtex("gfx/hud/vm-frame");
     public static final Tex fg = Resource.loadtex("gfx/hud/vm-tex");
+	Color cl;
+	public int amount;
 
     @RName("vm")
     public static class $_ implements Factory {

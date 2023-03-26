@@ -26,50 +26,54 @@
 
 package haven;
 
-public class HelpWnd extends WindowX {
+import haven.purus.BetterWindow;
+
+public class HelpWnd extends BetterWindow {
     public static final RichText.Foundry fnd;
-    public Indir<Resource> res;
-    private Indir<Resource> showing = null;
+    public Indir <Resource> res;
+    private Indir <Resource> showing = null;
     private final RichTextBox text;
-    
+
     static {
-	/* XXX: This should use the shown resource's respool. */
-	fnd = new RichText.Foundry(Resource.remote());
-	fnd.aa = true;
+        /* XXX: This should use the shown resource's respool. */
+        fnd    = new RichText.Foundry(Resource.remote());
+        fnd.aa = true;
     }
-    
-    public HelpWnd(Indir<Resource> res) {
-	super(Coord.z, "Help!", true);
-	this.res = res;
-	this.text = add(new RichTextBox(UI.scale(300, 400), "", fnd), Coord.z);
-	add(new Button(UI.scale(100), "Dismiss") {
-		public void click() {
-		    if(justclose)
-			HelpWnd.this.close();
-		    else
-		    HelpWnd.this.wdgmsg("close");
-		}
-	    }, UI.scale(100, 410));
-	pack();
+
+    public HelpWnd(Indir <Resource> res) {
+        super(Coord.z, "Help!", true);
+        this.res  = res;
+        this.text = add(new RichTextBox(UI.scale(300, 400), "", fnd), Coord.z);
+        add(new Button(UI.scale(100), "Dismiss") {
+            public void click() {
+                if (justclose) {
+                    HelpWnd.this.close();
+                }else{
+                    HelpWnd.this.wdgmsg("close");
+                }
+            }
+        }, UI.scale(100, 410));
+        pack();
     }
-    
+
     public void tick(double dt) {
-	super.tick(dt);
-	if(res != showing) {
-	    try {
-		text.settext(res.get().flayer(Resource.pagina).text);
-		showing = res;
-	    } catch(Loading e) {}
-	}
+        super.tick(dt);
+        if (res != showing) {
+            try {
+                text.settext(res.get().flayer(Resource.pagina).text);
+                showing = res;
+            } catch (Loading e) {}
+        }
     }
-    
+
     public static void show(UI ui, String res) {
-	show(ui, Resource.local().load(res));
+        show(ui, Resource.local().load(res));
     }
-    
-    public static void show(UI ui, Indir<Resource> res) {
-	HelpWnd wnd = new HelpWnd(res);
-	wnd.justclose = true;
-	ui.gui.add(wnd);
+
+    public static void show(UI ui, Indir <Resource> res) {
+        HelpWnd wnd = new HelpWnd(res);
+
+        wnd.justclose = true;
+        ui.gui.add(wnd);
     }
 }

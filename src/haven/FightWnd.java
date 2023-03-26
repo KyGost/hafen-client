@@ -444,6 +444,11 @@ public class FightWnd extends Widget {
 			}
 			Tex tex = act.res.get().flayer(Resource.imgc).tex();
 			g.image(tex, ic);
+			Tex used = Text.render(act.u + "/" + act.a).tex();
+			g.chcolor(new Color(0, 0, 0, 128));
+			g.frect(ic, used.sz());
+			g.chcolor();
+			g.image(used, ic);
 		    }
 		} catch(Loading l) {}
 		g.chcolor(156, 180, 158, 255);

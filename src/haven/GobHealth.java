@@ -29,39 +29,49 @@ package haven;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
+import java.awt.Color;
+
+import haven.purus.GobDecayNum;
 import haven.render.*;
 
 public class GobHealth extends GAttrib implements Gob.SetupMod {
     public final float hp;
     public final MixColor fx;
     private static final Text.Foundry gobhpf = new Text.Foundry(Text.sans.deriveFont(Font.BOLD), 12);
-    
+
     public GobHealth(Gob g, float hp) {
-	super(g);
-	this.hp = hp;
-	this.fx = new MixColor(255, 0, 0, 128 - Math.round(hp * 128));
+        super(g);
+        this.hp = hp;
+        this.fx = new MixColor(255, 0, 0, 128 - Math.round(hp * 128));
     }
-    
+
     public Pipe.Op gobstate() {
-	if(hp >= 1)
-	    return(null);
-	if(CFG.DISPLAY_GOB_INFO.get()) {return null;}
-	return(fx);
+        if (hp >= 1) {
+            return(null);
+        }
+        if (CFG.DISPLAY_GOB_INFO.get()) {
+            return(null);
+        }
+        return(fx);
     }
 
     @OCache.DeltaType(OCache.OD_HEALTH)
     public static class $health implements OCache.Delta {
-	public void apply(Gob g, Message msg) {
-	    int hp = msg.uint8();
-	    g.setattr(new GobHealth(g, hp / 4.0f));
-	}
+        public void apply(Gob g, Message msg) {
+            int hp = msg.uint8();
+
+            if (haven.purus.Config.showGobDecayNum.val) {
+                g.setattr(new GobDecayNum(g, hp));
+            }
+            g.setattr(new GobHealth(g, hp / 4.0f));
+        }
     }
 
     public BufferedImage text() {
-	if(hp < 1) {
-	    int c = 75 + (int) Math.floor(hp * 180);
-	    return Text.renderstroked(String.format("%d%%", Math.round(100 * hp)), new Color(255, c, c), Color.BLACK, gobhpf).img;
-	}
-	return null;
+        if (hp < 1) {
+            int c = 75 + (int)Math.floor(hp * 180);
+            return(Text.renderstroked(String.format("%d%%", Math.round(100 * hp)), new Color(255, c, c), Color.BLACK, gobhpf).img);
+        }
+        return(null);
     }
 }

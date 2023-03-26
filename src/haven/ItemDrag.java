@@ -26,6 +26,8 @@
 
 package haven;
 
+import static haven.MCache.tilesz;
+
 public class ItemDrag extends WItem {
     public Coord doff;
     

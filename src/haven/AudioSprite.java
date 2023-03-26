@@ -27,6 +27,9 @@
 package haven;
 
 import java.util.*;
+
+import haven.purus.Config;
+import haven.purus.audiomanager.AudioManagerWindow;
 import haven.render.*;
 import haven.Audio.CS;
 
@@ -62,13 +65,20 @@ public class AudioSprite {
 	    }
 	};
 
+	public static final HashMap<String, Float> volumes = new HashMap<String, Float>();
+
     public static class ClipSprite extends Sprite {
 	public final ActAudio.PosClip clip;
 	private boolean done = false;
 
 	public ClipSprite(Owner owner, Resource res, Audio.Clip clip) {
 	    super(owner, res);
-	    this.clip = new ActAudio.PosClip(new Audio.Monitor(clip.stream()) {
+	    if(!Config.customVolumes.val.containsKey(res.name)) {
+			Config.customVolumes.val.put(res.name, 1.0f);
+			Config.customVolumes.setVal(Config.customVolumes.val);
+		}
+		AudioManagerWindow.recentClips.put(res.name,  System.currentTimeMillis());
+		this.clip = new ActAudio.PosClip(new Audio.Monitor(new Audio.VolAdjust(clip.stream(), Config.customVolumes.val.get(res.name))) {
 		    protected void eof() {
 			super.eof();
 			done = true;

@@ -32,6 +32,7 @@ import java.awt.Robot;
 import java.awt.Point;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
+import haven.purus.MultiSession;
 import haven.render.*;
 import haven.render.States;
 import haven.render.gl.*;
@@ -43,12 +44,14 @@ public class JOGLPanel extends GLCanvas implements Runnable, UIPanel, Console.Di
     public final GPUProfile gprof = new GPUProfile(300);
     private boolean bgmode = false;
     private boolean aswap;
-    private int fps, framelag;
+    public static int fps;
+    private int framelag;
     private volatile int frameno;
     private double uidle = 0.0, ridle = 0.0;
     private final Dispatcher ed;
     private GLEnvironment env = null;
-    private UI ui, lockedui;
+    //private UI ui;
+    private UI lockedui;
     private final Object uilock = new Object();
     private Area shape;
     private Pipe base, wnd;
@@ -126,7 +129,7 @@ public class JOGLPanel extends GLCanvas implements Runnable, UIPanel, Console.Di
 	ed = new Dispatcher();
 	ed.register(this);
 	newui(null);
-	if(Toolkit.getDefaultToolkit().getMaximumCursorColors() >= 256)
+	if(Toolkit.getDefaultToolkit().getMaximumCursorColors() >= 256 || haven.purus.Config.hwcursor.val)
 	    cursmode = "awt";
 	
 	updateForceHWCursor(CFG.FORCE_HW_CURSOR);
@@ -139,11 +142,11 @@ public class JOGLPanel extends GLCanvas implements Runnable, UIPanel, Console.Di
     }
 
     private boolean iswap() {
-	return(this.ui.gprefs.vsync.val);
+	return(MultiSession.activeSession.gprefs.vsync.val);
     }
 
     private double framedur() {
-	GSettings gp = this.ui.gprefs;
+	GSettings gp = MultiSession.activeSession.gprefs;
 	double hz = gp.hz.val, bghz = gp.bghz.val;
 	if(bgmode) {
 	    if(bghz != Double.POSITIVE_INFINITY)
@@ -170,8 +173,8 @@ public class JOGLPanel extends GLCanvas implements Runnable, UIPanel, Console.Di
 	if(this.env != null)
 	    this.env.dispose();
 	this.env = env;
-	if(this.ui != null)
-	    this.ui.env = env;
+	if(MultiSession.activeSession != null)
+		MultiSession.activeSession.env = env;
 
 	if(errh != null) {
 	    GLEnvironment.Caps caps = env.caps();
@@ -523,13 +526,42 @@ public class JOGLPanel extends GLCanvas implements Runnable, UIPanel, Console.Di
 		Fence prevframe = null;
 		ProfileCycle rprofc = null;
 		int framep = 0;
+		if(Config.noui) {
+			while(true) {
+				long start = System.currentTimeMillis();
+				UI ui = MultiSession.activeSession;
+				//ed.dispatch(ui);
+				if(ui.sess != null) {
+					//ui.sess.glob.ctick();
+					//ui.sess.glob.gtick(buf);
+				}
+				synchronized(MultiSession.sessions) {
+					for(UI session : MultiSession.sessions) {
+						if(session.sess != null) {
+							session.sess.glob.ctick();
+							session.sess.ui.tick();
+							session.tick();
+						}
+					}
+				}
+				//ui.tick();
+				//ui.gtick(buf);
+				if((ui.root.sz.x != (shape.br.x - shape.ul.x)) || (ui.root.sz.y != (shape.br.y - shape.ul.y)))
+					ui.root.resize(new Coord(shape.br.x - shape.ul.x, shape.br.y - shape.ul.y));
+				long now = System.currentTimeMillis();
+				if(now-start < 50)
+					Thread.sleep(50-(now-start));
+			}
+		}
 		while(true) {
 		    double fwaited = 0;
 		    GLEnvironment env = this.env;
 		    buf = env.render();
-		    UI ui;
+		    //UI ui = this.ui;
+			UI ui = MultiSession.activeSession;
+		   // UI ui;
 		    synchronized(uilock) {
-			this.lockedui = ui = this.ui;
+			this.lockedui = ui = ui;
 			uilock.notifyAll();
 		    }
 		    Debug.cycle(ui.modflags());
@@ -564,6 +596,16 @@ public class JOGLPanel extends GLCanvas implements Runnable, UIPanel, Console.Di
 			if(ui.sess != null) {
 			    ui.sess.glob.ctick();
 			    ui.sess.glob.gtick(buf);
+			}
+			synchronized(MultiSession.sessions) {
+				for(UI session : MultiSession.sessions) {
+					if(session.sess != null && session != MultiSession.activeSession) {
+						synchronized(session) {
+							session.sess.glob.ctick();
+							session.sess.ui.tick();
+						}
+					}
+				}
 			}
 			if(curf != null) curf.tick("stick");
 			ui.tick();
@@ -659,6 +701,21 @@ public class JOGLPanel extends GLCanvas implements Runnable, UIPanel, Console.Di
     }
 
     public UI newui(UI.Runner fun) {
+//<<<<<<< HEAD
+
+	UI ui = new UI(this, new Coord(getSize()), fun);
+	MultiSession.setActiveSession(ui);
+	if(ui.sess != null)
+		ui.sess.ui = ui;
+	ui.env = this.env;
+	ui.root.guprof = uprof;
+	ui.root.grprof = rprof;
+	ui.root.ggprof = gprof;
+	if(getParent() instanceof Console.Directory)
+	    ui.cons.add((Console.Directory)getParent());
+	ui.cons.add(this);
+	return(ui);
+/*=======
 	UI prevui, newui = new UI(this, new Coord(getSize()), fun);
 	newui.env = this.env;
 	if(getParent() instanceof Console.Directory)
@@ -685,6 +742,7 @@ public class JOGLPanel extends GLCanvas implements Runnable, UIPanel, Console.Di
 	    }
 	}
 	return(newui);
+>>>>>>> d1818d329f1651030a4f59f5e09511966356ae0a*/
     }
 
     public void background(boolean bg) {
