@@ -39,6 +39,13 @@ import haven.ItemInfo.AttrCache;
 import rx.functions.Action0;
 import rx.functions.Action3;
 
+import haven.purus.Config;
+import haven.purus.pbot.api.Callback;
+import haven.purus.pbot.api.PBotItem;
+import haven.purus.pbot.api.PBotSession;
+import haven.res.ui.tt.q.quality.Quality;
+
+import static haven.ItemInfo.find;
 import static haven.Inventory.sqsz;
 
 public class WItem extends Widget implements DTarget2 {
@@ -105,7 +112,7 @@ public class WItem extends Widget implements DTarget2 {
 	if(prev == this) {
 	} else if(prev instanceof WItem) {
 	    double ps = ((WItem)prev).hoverstart;
-	    if(now - ps < 1.0)
+	    if(now - ps < 0.1)
 		hoverstart = now;
 	    else
 		hoverstart = ps;
@@ -120,7 +127,7 @@ public class WItem extends Widget implements DTarget2 {
 		shorttip = longtip = null;
 		ttinfo = info;
 	    }
-	    if(now - hoverstart < 1.0) {
+	    if(now - hoverstart < 0.1) {
 		if(shorttip == null)
 		    shorttip = new ShortTip(info);
 		return(shorttip);
@@ -215,9 +222,7 @@ public class WItem extends Widget implements DTarget2 {
     };
     
     public final AttrCache<List<ItemInfo>> gilding = new AttrCache<List<ItemInfo>>(this::info, AttrCache.cache(info -> ItemInfo.findall("Slotted", info)));
-    
     public final AttrCache<List<ItemInfo>> slots = new AttrCache<List<ItemInfo>>(this::info, AttrCache.cache(info -> ItemInfo.findall("ISlots", info)));
-
     public final AttrCache<Boolean> gildable = new AttrCache<Boolean>(this::info, AttrCache.cache(info -> {
 	List<ItemInfo> slots = ItemInfo.findall("ISlots", info);
 	for(ItemInfo slot : slots) {
@@ -227,13 +232,15 @@ public class WItem extends Widget implements DTarget2 {
 	}
 	return false;
     }));
-    
-    public final AttrCache<String> name;
-    
-    public final AttrCache<Float> quantity;
-    
-    public final AttrCache<Curiosity> curio = new AttrCache<>(this::info, AttrCache.cache(info -> ItemInfo.find(Curiosity.class, info)), null);
 
+     public final AttrCache<String> name;
+    public final AttrCache<Float> quantity;
+    public final AttrCache<Curiosity> curio = new AttrCache<>(this::info, AttrCache.cache(info -> ItemInfo.find(Curiosity.class, info)), null);
+    private String cachedStudyValue = null;
+    private String cachedTipValue = null;
+    private Tex cachedStudyTex = null;
+
+    
     private Widget contparent() {
 	/* XXX: This is a bit weird, but I'm not sure what the alternative is... */
 	Widget cont = getparent(GameUI.class);
@@ -264,7 +271,7 @@ public class WItem extends Widget implements DTarget2 {
 	checkDrop();
     }
 
-    public void draw(GOut g) {
+	public void draw(GOut g) {
 	GSprite spr = item.spr();
 	if(spr != null) {
 	    Coord sz = spr.sz();
@@ -281,8 +288,7 @@ public class WItem extends Widget implements DTarget2 {
 	    GItem.InfoOverlay<?>[] ols = itemols.get();
 	    if(ols != null) {
 		for(GItem.InfoOverlay<?> ol : ols)
-		    ol.draw(g);
-	    }
+		    ol.
 	    drawbars(g, sz);
 	    drawnum(g, sz);
 	    drawmeter(g, sz);
@@ -318,33 +324,29 @@ public class WItem extends Widget implements DTarget2 {
 	}
     }
     
-    private String cachedStudyValue = null;
-    private String cachedTipValue = null;
-    private Tex cachedStudyTex = null;
-    
     private Tex getStudyTime() {
-	Pair<String, String> data = study.get();
-	String value = data == null ? null : data.a;
-	String tip = data == null ? null : data.b;
-	if(!Objects.equals(tip, cachedTipValue)) {
-	    cachedTipValue = tip;
-	    longtip = null;
-	}
-	if(value != null) {
-	    if(!Objects.equals(value, cachedStudyValue)) {
-		if(cachedStudyTex != null) {
-		    cachedStudyTex.dispose();
-		    cachedStudyTex = null;
+		Pair<String, String> data = study.get();
+		String value = data == null ? null : data.a;
+		String tip = data == null ? null : data.b;
+		if(!Objects.equals(tip, cachedTipValue)) {
+		    cachedTipValue = tip;
+		    longtip = null;
 		}
-	    }
-	    
-	    if(cachedStudyTex == null) {
-		cachedStudyValue = value;
-		cachedStudyTex = Text.renderstroked(value).tex();
-	    }
-	    return cachedStudyTex;
-	}
-	return null;
+		if(value != null) {
+		    if(!Objects.equals(value, cachedStudyValue)) {
+			if(cachedStudyTex != null) {
+			    cachedStudyTex.dispose();
+			    cachedStudyTex = null;
+			}
+		    }
+		    
+		    if(cachedStudyTex == null) {
+			cachedStudyValue = value;
+			cachedStudyTex = Text.renderstroked(value).tex();
+		    }
+		    return cachedStudyTex;
+		}
+		return null;
     }
     
     private void drawbars(GOut g, Coord sz) {
@@ -497,7 +499,11 @@ public class WItem extends Widget implements DTarget2 {
 	if(inv != null) {inv.itemsChanged();}
     }
     
-    public boolean drop(WItem target, Coord cc, Coord ul) {
+    public Coord invLoc() {
+    	return this.c.div(sqsz);
+	}
+
+    public boolean drop(Coord cc, Coord ul) {
 	return(false);
     }
 

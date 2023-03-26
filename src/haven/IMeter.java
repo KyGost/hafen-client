@@ -34,6 +34,8 @@ public class IMeter extends LayerMeter {
     public static final Coord fsz = UI.scale(101, 24);
     public static final Coord msz = UI.scale(75, 10);
     public final Indir<Resource> bg;
+	private static final Resource horseAlarm = Resource.local().loadwait("sfx/alarms/horsestamina");
+	private boolean alarmPlayed = false;
 
     @RName("im")
     public static class $_ implements Factory {
@@ -65,6 +67,25 @@ public class IMeter extends LayerMeter {
 	    g.chcolor();
 	    g.image(bg, Coord.z);
 	} catch(Loading l) {
+	}
+    }
+    public void uimsg(String msg, Object... args) {
+	if(msg == "set") {
+	    this.meters = decmeters(args, 0);
+	    if(!alarmPlayed) {
+			try {
+				Resource res = bg.get();
+				if(res != null && res.name.equals("gfx/hud/meter/häst")) {
+					if(meters.get(0).a <= 0.10) {
+						Audio.play(horseAlarm);
+						alarmPlayed = true;
+					}
+				}
+			} catch(Loading l) {
+			}
+		}
+	} else {
+	    super.uimsg(msg, args);
 	}
     }
 }
